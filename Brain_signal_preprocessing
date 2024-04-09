@@ -1,0 +1,97 @@
+eegSignal = EEGdata;
+fs = 512; % Sampling frequency of the EEG signal (in Hz)
+t = (0:length(eegSignal)-1)/fs; % Time vector
+% Baseline correction
+baselineWindow = [0 1]; % Define the time window for baseline correction (in seconds)
+baselineIndices = t >= baselineWindow(1) & t <= baselineWindow(2);
+baseline = mean(eegSignal(baselineIndices));
+correctedSignal = eegSignal - baseline;
+figure;
+% Plot the original EEG signal
+subplot(2,1,1);
+plot(t, eegSignal);
+title('Original EEG Signal');
+xlabel('Time (s)');
+ylabel('Amplitude');
+% Plot the baseline-corrected EEG signal
+subplot(2,1,2);
+plot(t, correctedSignal);
+title('Baseline-Corrected EEG Signal');
+xlabel('Time (s)');
+ylabel('Amplitude');
+
+% EEG Signal Bandpass filter
+% Load and plot the EEG signal
+eegsignal= correctedSignal;
+fs = 512; % Sampling frequency of the EEG signal
+t = 0:(length(eegsignal)-1); % Time vector
+t = t/fs;
+% the bandpass filter parameter
+fpass = [0.2 30]; % passband frequencies
+order = 4; % Filter order
+% Design the filter
+[b, a] = butter(order, fpass/(fs/2), 'bandpass');
+% Apply filter to EEG signal
+filteredSignal = filtfilt(b, a, eegsignal);
+% Plot the original and filtered signals
+% Plot the original signal
+figure;
+subplot(2,1,1);
+plot(t, eegsignal);
+title('Original EEG Signal');
+xlabel('Time (s)');
+ylabel('Amplitude');
+% Plot the filtered signal
+subplot(2,1,2);
+plot(t, filteredSignal);
+title('Filtered EEG Signal');
+xlabel('Time (s)');
+ylabel('Amplitude');
+eegsignal = filteredSignal;
+
+n = length(eegsignal); % number of samples
+% Center the data by subtracting the mean from each feature
+centeredData = eegsignal - repmat(mean(eegsignal),n,1); 
+% Calculate the covariance matrix
+covarianceMatrix = cov(centeredData);
+% Perform eigendecomposition of the covariance matrix
+[eigenVectors, eigenValues] = eig(covarianceMatrix);
+% Sort eigenvalues and eigenvectors in descending order
+[eigenValues, sortedIndices] = sort(diag(eigenValues), 'descend');
+eigenVectors = eigenVectors(:, sortedIndices); 
+% Determine the cumulative explained variance
+% explainedVariance = cumsum(eigenValues) / sum(eigenValues);
+% Select the desired number of principal components based on the explained variance threshold
+% explainedVarianceThreshold = 0.95; % Change this 
+% value as desired
+% numComponents = find(explainedVariance >= explainedVarianceThreshold, 1);
+% Project the data onto the selected principal components
+projectedData = centeredData * eigenVectors(:, 1:10);
+subplot(2,1,2);
+plot(t, projectedData);
+title('Components EEG Signal');
+xlabel('Time (s)');
+ylabel('Amplitude');
+eegsignal = projectedData;
+
+AverageValue  = mean(eegsignal, "all")
+CARdata = eegsignal - AverageValue;
+subplot(2,1,2);
+plot(t, CARdata);
+title('CAR EEG Signal');
+xlabel('Time (s)');
+ylabel('Amplitude');
+eegsignal = CARdata;
+
+MetricMatrix = []
+for n = 1:length(trial)
+    Epoch = eegsignal(trial(n) + fs*3 : trial(n) + fs*8, :);
+    Epoch_mean = mean(Epoch, "all");
+    Epoch_max = max(max(Epoch));
+    Epoch_std = std(Epoch, 1, "all");
+    Epoch_rms = rms(Epoch, "all");
+    MetricMatrix(n, 1) = Epoch_mean;
+    MetricMatrix(n, 2) = Epoch_std;
+    MetricMatrix(n, 3) = Epoch_max;
+    MetricMatrix(n, 4) = Epoch_rms;
+end
